@@ -1,296 +1,170 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>M5TF — Datos Climáticos (Integrador)</title>
-    <meta name="description" content="Aplicación con navegación, modal, pestañas y visualizaciones responsivas.">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <title>M5C4 — Panel de Control Interactivo</title>
+  <meta name="description" content="Panel de control responsivo con múltiples gráficos y controles de filtro.">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    /* Mobile-first additions */
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .chart-card { min-height: 360px; }
+    img, canvas, svg { max-width: 100%; height: auto; }
+    .visually-hidden-focusable:active, .visually-hidden-focusable:focus { position: static !important; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+  </style>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" 
-          rel="stylesheet" 
-          integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
-          crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-
-    <style>
-        body {
-            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-        }
-
-        .chart-card {
-            min-height: 360px;
-        }
-
-        img, canvas, svg {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .visually-hidden-focusable:active, 
-        .visually-hidden-focusable:focus {
-            position: static !important;
-            width: auto;
-            height: auto;
-            margin: 0;
-            overflow: visible;
-            clip: auto;
-        }
-    </style>
-
-    <!-- Chart.js y dependencias -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+  <style>
+    .kpi { font-size: 1.25rem; font-weight: 600; }
+  </style>
 </head>
-
 <body>
-    <a class="visually-hidden-focusable" href="#main">Saltar al contenido</a>
-
-    <nav class="navbar navbar-expand-lg bg-body-tertiary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">App Climática</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" 
-                    aria-controls="nav" aria-expanded="false" aria-label="Alternar navegación">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div id="nav" class="collapse navbar-collapse">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    <li class="nav-item"><a class="nav-link active" aria-current="page" href="#overview">Resumen</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#explore">Explorar</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#about">Acerca de</a></li>
-                </ul>
-                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#helpModal">
-                    <i class="bi bi-question-circle"></i> Ayuda
-                </button>
-            </div>
+  <a class="visually-hidden-focusable" href="#main">Saltar al contenido principal</a>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Panel M5C4</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Alternar navegación">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="nav" class="collapse navbar-collapse">
+        <div class="ms-auto d-flex gap-2 align-items-center">
+          <label for="year" class="form-label mb-0">Año</label>
+          <select id="year" class="form-select form-select-sm" aria-label="Selector de año"></select>
+          <label for="region" class="form-label mb-0">Región</label>
+          <select id="region" class="form-select form-select-sm" aria-label="Selector de región"></select>
         </div>
-    </nav>
-
-    <main id="main" class="container my-4">
-        <!-- Sección Resumen -->
-        <section id="overview" class="mb-4">
-            <h1 class="h3">Resumen Climático General</h1>
-            <p class="text-muted">Análisis del comportamiento de la temperatura y humedad promedio en las ciudades.</p>
-            <div class="row g-3">
-                <div class="col-6 col-lg-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <div class="kpi h4" id="kpiAvgTemp">0°C</div>
-                            <div class="text-muted">Temp. Promedio</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-6 col-lg-3">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <div class="kpi h4" id="kpiAvgHum">0%</div>
-                            <div class="text-muted">Humedad Promedio</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-lg-6">
-                    <div class="card">
-                        <div class="card-body">
-                            <h2 class="h6">Temperatura Promedio Diaria Global</h2>
-                            <div class="ratio ratio-16x9">
-                                <canvas id="sessionsByDay" aria-label="Temperatura promedio a lo largo del tiempo" role="img"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Sección Explorar -->
-        <section id="explore" class="mb-4">
-            <h2 class="h4">Explorar por Ciudad</h2>
-            <ul class="nav nav-tabs" id="exploreTabs" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="tab-temp" data-bs-toggle="tab" 
-                            data-bs-target="#pane-temp" type="button" role="tab" 
-                            aria-controls="pane-temp" aria-selected="true">Temperatura Promedio</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="tab-hum" data-bs-toggle="tab" 
-                            data-bs-target="#pane-hum" type="button" role="tab" 
-                            aria-controls="pane-hum" aria-selected="false">Humedad Promedio</button>
-                </li>
-            </ul>
-
-            <div class="tab-content border border-top-0 p-3">
-                <div class="tab-pane fade show active" id="pane-temp" role="tabpanel" aria-labelledby="tab-temp">
-                    <div class="ratio ratio-16x9">
-                        <canvas id="byCategory" aria-label="Temperatura promedio por ciudad" role="img"></canvas>
-                    </div>
-                </div>
-                <div class="tab-pane fade" id="pane-hum" role="tabpanel" aria-labelledby="tab-hum">
-                    <div class="ratio ratio-16x9">
-                        <canvas id="byRegion" aria-label="Humedad promedio por ciudad" role="img"></canvas>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Sección Acerca de -->
-        <section id="about">
-            <h2 class="h4">Acerca de</h2>
-            <p>Esta aplicación demuestra el diseño responsivo con Bootstrap, componentes accesibles y visualización de datos climáticos usando Chart.js con datos del archivo CSV.</p>
-        </section>
-    </main>
-
-    <!-- Modal de Ayuda -->
-    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="helpLabel">Cómo Usar</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <ol>
-                        <li>Revisa los indicadores clave (KPIs) y la tendencia de temperatura global en el Resumen.</li>
-                        <li>Cambia las pestañas en Explorar para comparar la Temperatura y Humedad promedio por Ciudad.</li>
-                        <li>Todos los componentes son accesibles y responsivos.</li>
-                    </ol>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </nav>
 
-    <script>
-    // Colores accesibles
-    const COLORS = {
-        CDMX: 'rgba(255, 99, 132, 0.7)',
-        Guadalajara: 'rgba(54, 162, 235, 0.7)',
-        Monterrey: 'rgba(255, 206, 86, 0.7)',
-        BorderCDMX: 'rgb(255, 99, 132)',
-        BorderGuadalajara: 'rgb(54, 162, 235)',
-        BorderMonterrey: 'rgb(255, 206, 86)',
-    };
+  <main id="main" class="container my-4">
+    <section class="row g-3">
+      <div class="col-6 col-lg-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="kpi" id="kpiSales">0</div>
+            <div class="text-muted">Ventas Totales</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="kpi" id="kpiUnits">0</div>
+            <div class="text-muted">Unidades</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Ventas por Mes</h2>
+            <div class="ratio ratio-16x9"><canvas id="salesByMonth" aria-label="Ventas por mes" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Categorías Principales</h2>
+            <div class="ratio ratio-16x9"><canvas id="topCats" aria-label="Categorías principales" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Participación en Ventas</h2>
+            <div class="ratio ratio-16x9"><canvas id="salesShare" aria-label="Participación en ventas por categoría" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
-    async function loadCSV() {
-        try {
-            const response = await fetch('clima.csv');
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const text = await response.text();
-
-            const rows = text.trim().split('\n');
-            const headers = rows[0].split(',').map(h => h.trim());
-            const data = rows.slice(1).map(row => {
-                const values = row.split(',').map(v => v.trim());
-                const obj = {};
-                headers.forEach((header, i) => obj[header] = values[i]);
-                obj.temperatura = parseFloat(obj.temperatura);
-                obj.humedad = parseFloat(obj.humedad);
-                obj.date = obj.fecha ? obj.fecha.substring(0, 10) : null;
-                return obj;
-            }).filter(item => !isNaN(item.temperatura) && !isNaN(item.humedad) && item.date);
-
-            return data;
-        } catch (err) {
-            console.error("Error al cargar 'clima.csv':", err);
-            alert("No se pudo cargar 'clima.csv'. Asegúrate de que el archivo esté en la misma carpeta y usa un servidor local (por ejemplo, Live Server en VS Code).");
-            return [];
+  <script>
+    const regions = ["Norte","Sur","Este","Oeste"];
+    const years = [2023, 2024, 2025];
+    const categories = ["Electronicos","Hogar","Abarrotes","Juguetes","Ropa"];
+    const data = [];
+    for (const y of years) {
+      for (const r of regions) {
+        for (let m = 1; m <= 12; m++) {
+          for (const c of categories) {
+            const sales = Math.round(5000 + Math.random()*15000);
+            const units = Math.round(sales / (50 + Math.random()*100));
+            data.push({ year: y, region: r, month: m, category: c, sales, units });
+          }
         }
+      }
+    }
+   const CATEGORY_COLORS = [
+        'rgba(255, 99, 132, 0.8)',   // Rojo Rosado para Electronics
+        'rgba(54, 162, 235, 0.8)',   // Azul Vibrante para Home
+        'rgba(255, 206, 86, 0.8)',    // Amarillo Dorado para Grocery
+        'rgba(75, 192, 192, 0.8)',   // Turquesa para Toys
+        'rgba(153, 102, 255, 0.8)'   // Púrpura para Clothing
+    ];
+
+    function fmt(n) { return n.toLocaleString(); }
+    function monthName(m) { return new Date(2025, m-1, 1).toLocaleString('es-ES', { month: "short" }); } 
+
+    const yearSel = document.getElementById("year");
+    years.forEach(y => yearSel.append(new Option(y, y)));
+    yearSel.value = years.at(-1);
+    const regionSel = document.getElementById("region");
+    
+    ["Todas", ...regions].forEach(r => regionSel.append(new Option(r, r)));
+    regionSel.value = "Todas";
+    // Inicialización del Gráfico de Líneas
+    const salesByMonth = new Chart(document.getElementById("salesByMonth"), {
+      type: "line",
+      data: { labels: Array.from({length:12}, (_,i)=>monthName(i+1)), datasets: [{ label: "Ventas", data: [] }] }, 
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+    // Inicialización del Gráfico de Barras
+    const topCats = new Chart(document.getElementById("topCats"), {
+      type: "bar",
+      data: { labels: categories, datasets: [{ label: "Ventas", data: [], backgroundColor: CATEGORY_COLORS}] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+    // Inicialización del Gráfico Doughnut
+    const salesShare = new Chart(document.getElementById("salesShare"), {
+      type: "doughnut",
+      data: { labels: categories, datasets: [{ label: "Participación", data: [], backgroundColor: CATEGORY_COLORS}] },
+      options: { responsive: true, maintainAspectRatio: true }
+    });
+
+    function update() {
+      const Y = parseInt(yearSel.value);
+      const R = regionSel.value;
+      const rows = data.filter(d => d.year === Y && (R === "Todas" || d.region === R));
+      const totalSales = rows.reduce((s, r) => s + r.sales, 0);
+      const totalUnits = rows.reduce((s, r) => s + r.units, 0);
+      document.getElementById("kpiSales").textContent = "$" + fmt(totalSales);
+      document.getElementById("kpiUnits").textContent = fmt(totalUnits);
+
+      const monthly = Array.from({length:12}, () => 0);
+      rows.forEach(r => monthly[r.month-1] += r.sales);
+      salesByMonth.data.datasets[0].data = monthly;
+      salesByMonth.update();
+
+      const catTotals = Object.fromEntries(categories.map(c => [c, 0]));
+      rows.forEach(r => catTotals[r.category] += r.sales);
+      const catData = categories.map(c => catTotals[c]);
+      topCats.data.datasets[0].data = catData;
+      topCats.update();
+      salesShare.data.datasets[0].data = catData; 
+      salesShare.update();
     }
 
-    async function initCharts() {
-        const allData = await loadCSV();
-        if (allData.length === 0) return;
+    yearSel.addEventListener("change", update);
+    regionSel.addEventListener("change", update);
+    update();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-        // Agregaciones
-        const dailyAvg = {};
-        allData.forEach(item => {
-            if (!dailyAvg[item.date]) dailyAvg[item.date] = { sum: 0, count: 0 };
-            dailyAvg[item.date].sum += item.temperatura;
-            dailyAvg[item.date].count++;
-        });
-
-        const dailyLabels = Object.keys(dailyAvg).sort();
-        const dailyTemps = dailyLabels.map(d => (dailyAvg[d].sum / dailyAvg[d].count).toFixed(2));
-
-        const cities = [...new Set(allData.map(d => d.ciudad))];
-        const avgTempByCity = cities.map(city => {
-            const items = allData.filter(d => d.ciudad === city);
-            return (items.reduce((a, b) => a + b.temperatura, 0) / items.length).toFixed(2);
-        });
-        const avgHumByCity = cities.map(city => {
-            const items = allData.filter(d => d.ciudad === city);
-            return (items.reduce((a, b) => a + b.humedad, 0) / items.length).toFixed(2);
-        });
-
-        const avgTemp = (allData.reduce((a, b) => a + b.temperatura, 0) / allData.length).toFixed(1);
-        const avgHum = (allData.reduce((a, b) => a + b.humedad, 0) / allData.length).toFixed(1);
-
-        document.getElementById("kpiAvgTemp").textContent = `${avgTemp}°C`;
-        document.getElementById("kpiAvgHum").textContent = `${avgHum}%`;
-
-        new Chart(document.getElementById("sessionsByDay"), {
-            type: "line",
-            data: {
-                labels: dailyLabels,
-                datasets: [{
-                    label: "Temp. Promedio (°C)",
-                    data: dailyTemps,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.3
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: { type: 'time', time: { unit: 'day' }, title: { display: true, text: 'Fecha' } },
-                    y: { title: { display: true, text: 'Temperatura (°C)' } }
-                }
-            }
-        });
-
-        new Chart(document.getElementById("byCategory"), {
-            type: "bar",
-            data: {
-                labels: cities,
-                datasets: [{
-                    label: "Temp. Promedio (°C)",
-                    data: avgTempByCity,
-                    backgroundColor: cities.map(c => COLORS[c] || 'gray'),
-                    borderColor: cities.map(c => COLORS['Border' + c] || 'black'),
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: { y: { title: { display: true, text: 'Temperatura (°C)' } } }
-            }
-        });
-
-        new Chart(document.getElementById("byRegion"), {
-            type: "radar",
-            data: {
-                labels: cities,
-                datasets: [{
-                    label: "Humedad Promedio (%)",
-                    data: avgHumByCity,
-                    backgroundColor: 'rgba(153, 102, 255, 0.4)',
-                    borderColor: 'rgb(153, 102, 255)',
-                    pointBackgroundColor: 'rgb(153, 102, 255)'
-                }]
-            },
-            options: { responsive: true }
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", initCharts);
-    </script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
-            crossorigin="anonymous"></script>
 </body>
 </html>
