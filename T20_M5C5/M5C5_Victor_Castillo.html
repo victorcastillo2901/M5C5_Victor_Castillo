@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <title>M5C4 — Panel de Control Interactivo</title>
+  <meta name="description" content="Panel de control responsivo con múltiples gráficos y controles de filtro.">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <style>
+    /* Mobile-first additions */
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .chart-card { min-height: 360px; }
+    img, canvas, svg { max-width: 100%; height: auto; }
+    .visually-hidden-focusable:active, .visually-hidden-focusable:focus { position: static !important; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <style>
+    .kpi { font-size: 1.25rem; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <a class="visually-hidden-focusable" href="#main">Saltar al contenido principal</a>
+  <nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Panel M5C4</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav" aria-controls="nav" aria-expanded="false" aria-label="Alternar navegación">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div id="nav" class="collapse navbar-collapse">
+        <div class="ms-auto d-flex gap-2 align-items-center">
+          <label for="year" class="form-label mb-0">Año</label>
+          <select id="year" class="form-select form-select-sm" aria-label="Selector de año"></select>
+          <label for="region" class="form-label mb-0">Región</label>
+          <select id="region" class="form-select form-select-sm" aria-label="Selector de región"></select>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main" class="container my-4">
+    <section class="row g-3">
+      <div class="col-6 col-lg-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="kpi" id="kpiSales">0</div>
+            <div class="text-muted">Ventas Totales</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="card text-center">
+          <div class="card-body">
+            <div class="kpi" id="kpiUnits">0</div>
+            <div class="text-muted">Unidades</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Ventas por Mes</h2>
+            <div class="ratio ratio-16x9"><canvas id="salesByMonth" aria-label="Ventas por mes" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Categorías Principales</h2>
+            <div class="ratio ratio-16x9"><canvas id="topCats" aria-label="Categorías principales" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="card">
+          <div class="card-body">
+            <h2 class="h6">Participación en Ventas</h2>
+            <div class="ratio ratio-16x9"><canvas id="salesShare" aria-label="Participación en ventas por categoría" role="img"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const regions = ["Norte","Sur","Este","Oeste"];
+    const years = [2023, 2024, 2025];
+    const categories = ["Electronicos","Hogar","Abarrotes","Juguetes","Ropa"];
+    const data = [];
+    for (const y of years) {
+      for (const r of regions) {
+        for (let m = 1; m <= 12; m++) {
+          for (const c of categories) {
+            const sales = Math.round(5000 + Math.random()*15000);
+            const units = Math.round(sales / (50 + Math.random()*100));
+            data.push({ year: y, region: r, month: m, category: c, sales, units });
+          }
+        }
+      }
+    }
+   const CATEGORY_COLORS = [
+        'rgba(255, 99, 132, 0.8)',   // Rojo Rosado para Electronics
+        'rgba(54, 162, 235, 0.8)',   // Azul Vibrante para Home
+        'rgba(255, 206, 86, 0.8)',    // Amarillo Dorado para Grocery
+        'rgba(75, 192, 192, 0.8)',   // Turquesa para Toys
+        'rgba(153, 102, 255, 0.8)'   // Púrpura para Clothing
+    ];
+
+    function fmt(n) { return n.toLocaleString(); }
+    function monthName(m) { return new Date(2025, m-1, 1).toLocaleString('es-ES', { month: "short" }); } 
+
+    const yearSel = document.getElementById("year");
+    years.forEach(y => yearSel.append(new Option(y, y)));
+    yearSel.value = years.at(-1);
+    const regionSel = document.getElementById("region");
+    
+    ["Todas", ...regions].forEach(r => regionSel.append(new Option(r, r)));
+    regionSel.value = "Todas";
+    // Inicialización del Gráfico de Líneas
+    const salesByMonth = new Chart(document.getElementById("salesByMonth"), {
+      type: "line",
+      data: { labels: Array.from({length:12}, (_,i)=>monthName(i+1)), datasets: [{ label: "Ventas", data: [] }] }, 
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+    // Inicialización del Gráfico de Barras
+    const topCats = new Chart(document.getElementById("topCats"), {
+      type: "bar",
+      data: { labels: categories, datasets: [{ label: "Ventas", data: [], backgroundColor: CATEGORY_COLORS}] },
+      options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+    });
+    // Inicialización del Gráfico Doughnut
+    const salesShare = new Chart(document.getElementById("salesShare"), {
+      type: "doughnut",
+      data: { labels: categories, datasets: [{ label: "Participación", data: [], backgroundColor: CATEGORY_COLORS}] },
+      options: { responsive: true, maintainAspectRatio: true }
+    });
+
+    function update() {
+      const Y = parseInt(yearSel.value);
+      const R = regionSel.value;
+      const rows = data.filter(d => d.year === Y && (R === "Todas" || d.region === R));
+      const totalSales = rows.reduce((s, r) => s + r.sales, 0);
+      const totalUnits = rows.reduce((s, r) => s + r.units, 0);
+      document.getElementById("kpiSales").textContent = "$" + fmt(totalSales);
+      document.getElementById("kpiUnits").textContent = fmt(totalUnits);
+
+      const monthly = Array.from({length:12}, () => 0);
+      rows.forEach(r => monthly[r.month-1] += r.sales);
+      salesByMonth.data.datasets[0].data = monthly;
+      salesByMonth.update();
+
+      const catTotals = Object.fromEntries(categories.map(c => [c, 0]));
+      rows.forEach(r => catTotals[r.category] += r.sales);
+      const catData = categories.map(c => catTotals[c]);
+      topCats.data.datasets[0].data = catData;
+      topCats.update();
+      salesShare.data.datasets[0].data = catData; 
+      salesShare.update();
+    }
+
+    yearSel.addEventListener("change", update);
+    regionSel.addEventListener("change", update);
+    update();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+</body>
+</html>
